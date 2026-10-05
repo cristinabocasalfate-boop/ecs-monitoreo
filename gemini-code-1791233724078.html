@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECS — Sistema de Monitoreo Institucional</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+:root{--azul:#1e3a5f;--azul2:#2c5282;--azul3:#3a6fb0;--gris:#f4f6f9;--rojo:#c0392b;--verde:#27ae60;--amarillo:#f39c12;--naranja:#e67e22}
+*{box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--gris);margin:0}
+.topbar{background:linear-gradient(135deg,var(--azul),var(--azul2));color:#fff;padding:18px 30px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.topbar h1{font-size:1.35rem;font-weight:700;margin:0;letter-spacing:.5px}
+.topbar .date{font-size:.82rem;opacity:.85}
+.tabs{display:flex;background:#fff;border-bottom:2px solid #dee2e6;padding:0 20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.tab-btn{padding:14px 28px;border:none;background:none;font-size:.95rem;font-weight:600;color:#666;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s}
+.tab-btn:hover{color:var(--azul)}
+.tab-btn.active{color:var(--azul);border-bottom-color:var(--azul3)}
+.content{padding:28px 30px;max-width:1400px;margin:0 auto}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+.card{border:none;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:24px}
+.card-header{background:#fff;border-bottom:1px solid #edf2f7;font-weight:700;color:var(--azul);padding:16px 20px;border-top-left-radius:10px!important;border-top-right-radius:10px!important}
+.stat-card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.05);border-left:4px solid var(--azul3);display:flex;align-items:center;justify-content:space-between}
+.stat-card .num{font-size:1.8rem;font-weight:700;color:var(--azul)}
+.stat-card .lbl{font-size:.85rem;color:#666;text-transform:uppercase;letter-spacing:.5px}
+.stat-card.green{border-left-color:var(--verde)}
+.stat-card.yellow{border-left-color:var(--amarillo)}
+.stat-card.red{border-left-color:var(--rojo)}
+table{font-size:.9rem}
+th{background:#f8fafc!important;color:var(--azul)!important;font-weight:600!important}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div>
+    <h1>Escuela de Comercio de Santiago — Sistema de Monitoreo Institucional</h1>
+    <span class="date">Actualizado: Octubre 2026 | PMO & Efectividad Institucional</span>
+  </div>
+  <div><span class="badge bg-light text-dark p-2">M. Cristina Boca</span></div>
+</div>
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab(0)">1. Procesos & Fichas</button>
+  <button class="tab-btn" onclick="switchTab(1)">2. Auditorías Internas</button>
+  <button class="tab-btn" onclick="switchTab(2)">3. Hallazgos & Acciones</button>
+  <button class="tab-btn" onclick="switchTab(3)">4. Contribución CNA / PEI</button>
+</div>
+<div class="content">
+  <div class="tab-pane active">
+    <div class="row mb-4">
+      <div class="col-md-4"><div class="stat-card"><div><div class="lbl">Total Subprocesos</div><div class="num">72</div></div><i class="bi bi-diagram-3 fs-1 text-primary"></i></div></div>
+      <div class="col-md-4"><div class="stat-card green"><div><div class="lbl">Fichas Documentadas</div><div class="num">61 (85%)</div></div><i class="bi bi-file-earmark-check fs-1 text-success"></i></div></div>
+      <div class="col-md-4"><div class="stat-card red"><div><div class="lbl">Sin Ficha / Pendientes</div><div class="num">11 (15%)</div></div><i class="bi bi-file-earmark-x fs-1 text-danger"></i></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i class="bi bi-table me-2"></i> Maestro General de Subprocesos y Estado de Fichas</div>
+      <div class="card-body table-responsive">
+        <table class="table table-hover align-middle">
+          <thead><tr><th>ID</th><th>Tipo</th><th>Proceso</th><th>Subproceso</th><th>Estado Ficha</th></tr></thead>
+          <tbody>
+            <tr><td>ECS-PE01-SP01</td><td>Estratégico</td><td>Gobernanza Institucional</td><td>Cumplimiento Legal</td><td><span class="badge bg-success">Sí (61)</span></td></tr>
+            <tr><td>ECS-PE01-SP02</td><td>Estratégico</td><td>Gobernanza Institucional</td><td>Gestión de Normativa y Reglamentación Institucional</td><td><span class="badge bg-warning text-dark">No Fichas (10)</span></td></tr>
+            <tr><td>ECS-PE02-SP01</td><td>Estratégico</td><td>Planificación Estratégica</td><td>Formulación del Plan Estratégico Institucional (PEI)</td><td><span class="badge bg-success">Sí</span></td></tr>
+            <tr><td>ECS-PE02-SP02</td><td>Estratégico</td><td>Planificación Estratégica</td><td>Seguimiento y monitoreo del PEI</td><td><span class="badge bg-success">Sí</span></td></tr>
+            <tr><td>ECS-PR01-SP01</td><td>Misional</td><td>Provisión de Carreras y Oferta Formativa</td><td>Definición y Aprobación de Carrera</td><td><span class="badge bg-success">Sí</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="tab-pane">
+    <div class="row mb-4">
+      <div class="col-md-6"><div class="stat-card"><div><div class="lbl">Procesos Auditados / Ciclo</div><div class="num">18 Procesos</div></div><i class="bi bi-shield-check fs-1 text-primary"></i></div></div>
+      <div class="col-md-6"><div class="stat-card green"><div><div class="lbl">Cobertura de Auditoría</div><div class="num">100% Planificada</div></div><i class="bi bi-check-all fs-1 text-success"></i></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i class="bi bi-journal-check me-2"></i> Cronograma y Ejecución de Auditorías Internas</div>
+      <div class="card-body p-4">
+        <p class="text-muted">El ciclo de auditorías internas evalúa de forma sistemática los procesos institucionales definidos en el plan de aseguramiento de la calidad, verificando el cumplimiento normativo, la eficacia de los controles y la trazabilidad operativa.</p>
+      </div>
+    </div>
+  </div>
+  <div class="tab-pane">
+    <div class="row mb-4">
+      <div class="col-md-3"><div class="stat-card"><div><div class="lbl">Conformidades</div><div class="num">30</div></div><i class="bi bi-check-circle fs-1 text-success"></i></div></div>
+      <div class="col-md-3"><div class="stat-card yellow"><div><div class="lbl">Observaciones</div><div class="num">23</div></div><i class="bi bi-exclamation-triangle fs-1 text-warning"></i></div></div>
+      <div class="col-md-3"><div class="stat-card red"><div><div class="lbl">No Conformidades Menores</div><div class="num">9</div></div><i class="bi bi-dash-circle fs-1 text-danger"></i></div></div>
+      <div class="col-md-3"><div class="stat-card red"><div><div class="lbl">No Conformidades Mayores</div><div class="num">5</div></div><i class="bi bi-x-octagon fs-1 text-danger"></i></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i class="bi bi-list-nested me-2"></i> Matriz de Hallazgos y Acciones Correctivas</div>
+      <div class="card-body table-responsive">
+        <table class="table table-hover align-middle">
+          <thead><tr><th>ID</th><th>Proceso</th><th>Subproceso</th><th>Clasificación</th><th>Responsable</th><th>Plazo</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td>HA-2025-001</td><td>Planificación Estratégica</td><td>Formulación del PEI</td><td><span class="badge bg-warning text-dark">No conformidad menor</span></td><td>Vanessa Orellana</td><td>12-01-2026</td><td>No iniciado</td></tr>
+            <tr><td>HA-2025-011</td><td>Gestión Docente</td><td>Pago docente</td><td><span class="badge bg-danger">No conformidad mayor</span></td><td>Yessica Vilches</td><td>01-02-2026</td><td>No iniciado</td></tr>
+            <tr><td>HA-2026-004</td><td>Titulación</td><td>Proceso de Prácticas</td><td><span class="badge bg-info text-dark">Observación</span></td><td>Lorena González</td><td>01-03-2026</td><td>En desarrollo</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="tab-pane">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-bullseye me-2"></i> Contribución a Criterios CNA y Ejes PEI</div>
+      <div class="card-body p-4">
+        <p class="text-muted">Cada subproceso institucional se encuentra formalmente vinculado a los criterios de acreditación de la Comisión Nacional de Acreditación (CNA) y a los objetivos estratégicos del PEI, garantizando la trazabilidad y el aseguramiento institucional.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function switchTab(idx){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tab-pane').forEach((p,i)=>p.classList.toggle('active',i===idx));
+}
+</script>
+</body>
+</html>
