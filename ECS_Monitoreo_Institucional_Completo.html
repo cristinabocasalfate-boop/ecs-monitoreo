@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECS — Sistema de Monitoreo Institucional</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+:root{--azul:#1e3a5f;--azul2:#2c5282;--azul3:#3a6fb0;--gris:#f4f6f9;--rojo:#c0392b;--verde:#27ae60;--amarillo:#f39c12;--naranja:#e67e22}
+*{box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--gris);margin:0}
+.topbar{background:linear-gradient(135deg,var(--azul),var(--azul2));color:#fff;padding:18px 30px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.topbar h1{font-size:1.35rem;font-weight:700;margin:0;letter-spacing:.3px}
+.topbar p{font-size:.85rem;margin:0;opacity:.85}
+.update-badge{background:rgba(255,255,255,.15);padding:6px 12px;border-radius:6px;font-size:.8rem;border:1px solid rgba(255,255,255,.2)}
+.nav-tabs-container{background:#fff;border-bottom:1px solid #dee2e6;padding:0 30px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.nav-tabs .nav-link{color:#495057;border:none;padding:14px 20px;font-weight:600;font-size:.9rem;border-bottom:3px solid transparent;transition:.2s}
+.nav-tabs .nav-link:hover{color:var(--azul3)}
+.nav-tabs .nav-link.active{color:var(--azul);background:0 0;border-bottom:3px solid var(--azul)}
+.content-section{padding:30px;max-width:1600px;margin:0 auto}
+.card-metric{background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.05);border-left:4px solid var(--azul);display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.card-metric h3{font-size:1.8rem;font-weight:700;margin:0;color:var(--azul)}
+.card-metric p{font-size:.85rem;color:#6c757d;margin:0;text-transform:uppercase;font-weight:600}
+.card-metric i{font-size:2.2rem;color:var(--azul3);opacity:.2}
+.filter-bar{background:#fff;padding:16px 20px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.04);margin-bottom:20px;display:flex;flex-wrap:wrap;gap:15px;align-items:center}
+.table-container{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);overflow:hidden;padding:10px}
+table{font-size:.88rem;margin-bottom:0!important}
+thead th{background:var(--azul)!important;color:#fff!important;font-weight:600;border:none!important;padding:12px 15px!important}
+tbody td{padding:12px 15px!important;vertical-align:middle!important;border-color:#edf2f7!important}
+.badge-status{padding:5px 10px;border-radius:6px;font-size:.75rem;font-weight:600;display:inline-block}
+.b-no-iniciado{background:#fef3c7;color:#92400e}
+.b-proceso{background:#e0f2fe;color:#0369a1}
+.b-cerrado{background:#dcfce7;color:#166534}
+.b-observacion{background:#f3f4f6;color:#374151}
+.b-nc-menor{background:#ffedd5;color:#9a3412}
+.b-nc-mayor{background:#fee2e2;color:#991b1b}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1><i class="bi bi-shield-check me-2"></i>ECS — Sistema de Monitoreo Institucional</h1>
+    <p>Escuela de Comercio y Servicios • Gestión de Procesos, Auditorías y Calidad</p>
+  </div>
+  <div class="update-badge">
+    <i class="bi bi-calendar-event me-1"></i> Actualizado: <strong>15 de septiembre de 2026</strong>
+  </div>
+</div>
+
+<div class="nav-tabs-container">
+  <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-procesos"><i class="bi bi-diagram-3 me-1"></i> Mapa y Maestro de Procesos</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-hallazgos"><i class="bi bi-search me-1"></i> Matriz de Hallazgos</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-cna"><i class="bi bi-journal-check me-1"></i> Contribución CNA - PEI</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-cronogramas"><i class="bi bi-calendar-range me-1"></i> Cronogramas Auditorías</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-guia"><i class="bi bi-info-circle me-1"></i> Guía de Uso</button></li>
+  </ul>
+</div>
+
+<div class="content-section">
+  
+  <!-- TAB 1: MAPA Y MAESTRO DE PROCESOS -->
+  <div class="tab-pane active" id="tab-procesos">
+    <div class="row">
+      <div class="col-md-4">
+        <div class="card-metric">
+          <div><p>Total Subprocesos</p><h3>72</h3></div>
+          <i class="bi bi-layers"></i>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card-metric" style="border-left-color:var(--verde)">
+          <div><p>Procesos Estratégicos / Apoyo</p><h3>18</h3></div>
+          <i class="bi bi-cpu"></i>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card-metric" style="border-left-color:var(--amarillo)">
+          <div><p>Hallazgos Totales</p><h3>74</h3></div>
+          <i class="bi bi-exclamation-triangle"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="flex-grow-1">
+        <input type="text" id="searchMaestro" class="form-control" placeholder="Buscar proceso, subproceso o ID..." onkeyup="filterMaestro()">
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table class="table table-hover align-middle" id="tableMaestro">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Proceso</th>
+            <th>ID Proceso</th>
+            <th>Subproceso</th>
+            <th>ID Subproceso</th>
+            <th>Ficha</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge bg-secondary">Estratégico</span></td>
+            <td><strong>Gobernanza Institucional</strong></td>
+            <td>ECS-PE01</td>
+            <td>Cumplimiento Legal</td>
+            <td>ECS-PE01-SP01</td>
+            <td><span class="badge bg-success">Sí</span></td>
+          </tr>
+          <tr>
+            <td></td><td></td><td></td>
+            <td>Gestión de Normativa y Reglamentación Institucional</td>
+            <td>ECS-PE01-SP02</td>
+            <td><span class="badge bg-light text-dark">No Fichas</span></td>
+          </tr>
+          <tr>
+            <td></td><td></td><td></td>
+            <td>Gestión del Sistema Interno de Aseguramiento de la Calidad</td>
+            <td>ECS-PE01-SP03</td>
+            <td><span class="badge bg-success">Sí</span></td>
+          </tr>
+          <tr>
+            <td></td><td></td><td></td>
+            <td>Autoevaluación Institucional</td>
+            <td>ECS-PE01-SP04</td>
+            <td><span class="badge bg-success">Sí</span></td>
+          </tr>
+          <tr>
+            <td></td><td></td><td></td>
+            <td>Gestión de Riesgos y Compliance</td>
+            <td>ECS-PE01-SP05</td>
+            <td><span class="badge bg-success">Sí</span></td>
+          </tr>
+          <tr>
+            <td><span class="badge bg-secondary">Planificación</span></td>
+            <td><strong>Planificación Estratégica</strong></td>
+            <td>ECS-PE02</td>
+            <td>Formulación del Plan Estratégico Institucional (PEI)</td>
+            <td>ECS-PE02-SP01</td>
+            <td><span class="badge bg-success">Sí</span></td>
+          </tr>
+          <tr>
+            <td></td><td></td><td></td>
+            <td>Seguimiento y monitoreo del PEI</td>
+            <td>ECS-PE02-SP02</td>
+            <td><span class="badge bg-success">Sí</span></td>
+          </tr>
+          <tr>
+            <td></td><td></td><td></td>
+            <td>Gestión Presupuestaria y Financiera</td>
+            <td>ECS-PE02-SP03</td>
+            <td><span class="badge bg-success">Sí</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 2: MATRIZ DE HALLAZGOS -->
+  <div class="tab-pane" id="tab-hallazgos">
+    <div class="filter-bar">
+      <div class="flex-grow-1">
+        <input type="text" id="searchHallazgos" class="form-control" placeholder="Buscar en hallazgos, proceso, responsable..." onkeyup="filterHallazgos()">
+      </div>
+      <div>
+        <select id="filterClasif" class="form-select" onchange="filterHallazgos()">
+          <option value="">Todas las clasificaciones</option>
+          <option value="No conformidad menor">No conformidad menor</option>
+          <option value="No conformidad mayor">No conformidad mayor</option>
+          <option value="Observación">Observación</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table class="table table-hover align-middle" id="tableHallazgos">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Proceso</th>
+            <th>Subproceso</th>
+            <th>Clasificación</th>
+            <th>Descripción del Hallazgo</th>
+            <th>Responsable</th>
+            <th>Plazo</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>HA-2025-001</strong></td>
+            <td>Planificación Estratégica</td>
+            <td>Formulación del Plan Estratégico Institucional (PEI)</td>
+            <td><span class="badge-status b-nc-menor">No conformidad menor</span></td>
+            <td>Brechas en controles (carpeta compartida sin formalización) y análisis financiero pendiente.</td>
+            <td>Vanessa Orellana</td>
+            <td>12/01/2026</td>
+            <td><span class="badge-status b-no-iniciado">No iniciado</span></td>
+          </tr>
+          <tr>
+            <td><strong>HA-2025-002</strong></td>
+            <td>Planificación Estratégica</td>
+            <td>Seguimiento y monitoreo del PEI</td>
+            <td><span class="badge-status b-nc-menor">No conformidad menor</span></td>
+            <td>Ausencia evidencias sistemáticas de seguimiento (solo PPT/Excel, sin Planner activo ni informes semestrales).</td>
+            <td>Vanessa Orellana</td>
+            <td>01/02/2026</td>
+            <td><span class="badge-status b-no-iniciado">No iniciado</span></td>
+          </tr>
+          <tr>
+            <td><strong>HA-2025-003</strong></td>
+            <td>Gobernanza Institucional</td>
+            <td>Gestión de Normativa y Reglamentación Institucional</td>
+            <td><span class="badge-status b-observacion">Observación</span></td>
+            <td>Sugerencias preventivas para procedimientos de políticas y legalización notarial.</td>
+            <td>Pedro Rojas</td>
+            <td>20/01/2026</td>
+            <td><span class="badge-status b-no-iniciado">No iniciado</span></td>
+          </tr>
+          <tr>
+            <td><strong>HA-2025-004</strong></td>
+            <td>Provisión de Carreras y Oferta Formativa</td>
+            <td>Definición y Aprobación de Carrera</td>
+            <td><span class="badge-status b-nc-menor">No conformidad menor</span></td>
+            <td>Falta evidencias/análisis para carreras 2024 hacia atrás; sin aprobación formal Consejo Académico.</td>
+            <td>Felix Burgos</td>
+            <td>01/02/2026</td>
+            <td><span class="badge-status b-no-iniciado">No iniciado</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 3: CONTRIBUCIÓN CNA - PEI -->
+  <div class="tab-pane" id="tab-cna">
+    <div class="table-container">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Proceso</th>
+            <th>Subproceso</th>
+            <th>Criterio CNA</th>
+            <th>Eje PEI</th>
+            <th>Objetivo PEI</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Gobernanza Institucional</strong></td>
+            <td>Cumplimiento Legal</td>
+            <td><span class="badge bg-info text-dark">Criterio 06. Gobierno y Estructura Organizacional</span></td>
+            <td>Eje 3: Consolidar la gestión administrativa...</td>
+            <td>2. Consolidar la gestión basada en procesos...</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>Gestión de Normativa y Reglamentación Institucional</td>
+            <td><span class="badge bg-info text-dark">Criterio 06. Gobierno y Estructura Organizacional</span></td>
+            <td>Eje 3: Consolidar la gestión administrativa...</td>
+            <td>2. Consolidar la gestión basada en procesos...</td>
+          </tr>
+          <tr>
+            <td><strong>Planificación Estratégica</strong></td>
+            <td>Formulación del Plan Estratégico Institucional (PEI)</td>
+            <td><span class="badge bg-info text-dark">Criterio 06. Gobierno y Estructura Organizacional</span></td>
+            <td>Eje 3: Consolidar la gestión administrativa...</td>
+            <td>2. Consolidar la gestión basada en procesos...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 4: CRONOGRAMAS AUDITORÍAS -->
+  <div class="tab-pane" id="tab-cronogramas">
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card p-3 shadow-sm mb-3">
+          <h5><i class="bi bi-calendar-check text-primary me-2"></i>Etapa 1 & 2 (F1 - F2)</h5>
+          <p class="text-muted small">Cronograma inicial de levantamiento de procesos y verificación de auditorías internas.</p>
+          <ul class="list-group list-group-flush small">
+            <li class="list-group-item d-flex justify-content-between align-items-center">Lanzamiento de Auditorías <span class="badge bg-primary">Completado</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Evaluación de Carreras (VRAC) <span class="badge bg-warning text-dark">En curso</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Revisión Procesos Transversales <span class="badge bg-secondary">Programado</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card p-3 shadow-sm mb-3">
+          <h5><i class="bi bi-calendar-event text-success me-2"></i>Etapa 3 & 4 (F3 - F4)</h5>
+          <p class="text-muted small">Seguimiento de planes de mejora y auditorías de cierre de brechas.</p>
+          <ul class="list-group list-group-flush small">
+            <li class="list-group-item d-flex justify-content-between align-items-center">Validación Planes Correctivos <span class="badge bg-secondary">Programado</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Auditoría Final CNA <span class="badge bg-secondary">Pendiente</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 5: GUÍA DE USO -->
+  <div class="tab-pane" id="tab-guia">
+    <div class="table-container">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Sección</th>
+            <th>Descripción de Campos</th>
+            <th>Instrucciones de Completado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Matriz Hallazgos</strong></td>
+            <td>ID: Código único de hallazgo (AUD-XXX)</td>
+            <td>Asignar secuencial durante auditoría.</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>Proceso: Nombre del proceso de auditoría</td>
+            <td>Seleccionar de lista de 18 procesos institucionales.</td>
+          </tr>
+          <tr>
+            <td><strong>Criterios CNA</strong></td>
+            <td>Vinculación obligatoria con criterios de acreditación institucional.</td>
+            <td>Alinear cada subproceso con el estándar CNA correspondiente.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function filterMaestro() {
+  let input = document.getElementById("searchMaestro").value.toLowerCase();
+  let rows = document.querySelectorAll("#tableMaestro tbody tr");
+  rows.forEach(row => {
+    let text = row.innerText.toLowerCase();
+    row.style.display = text.includes(input) ? "" : "none";
+  });
+}
+
+function filterHallazgos() {
+  let input = document.getElementById("searchHallazgos").value.toLowerCase();
+  let clasif = document.getElementById("filterClasif").value.toLowerCase();
+  let rows = document.querySelectorAll("#tableHallazgos tbody tr");
+  rows.forEach(row => {
+    let text = row.innerText.toLowerCase();
+    let matchText = text.includes(input);
+    let matchClasif = clasif === "" || text.includes(clasif);
+    row.style.display = (matchText && matchClasif) ? "" : "none";
+  });
+}
+</script>
+</body>
+</html>
