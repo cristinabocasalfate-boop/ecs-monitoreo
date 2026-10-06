@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECS — Sistema de Monitoreo Institucional</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+  body { background: #f0f2f5; color: #333; }
+
+  /* HEADER */
+  .header { background: #1a3a5c; color: white; padding: 18px 32px; display: flex; justify-content: space-between; align-items: center; }
+  .header-left h1 { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .header-left h1 span.icon { font-size: 22px; }
+  .header-left p { font-size: 12px; color: #a8c4e0; margin-top: 2px; }
+  .header-right { font-size: 12px; color: #a8c4e0; text-align: right; }
+  .header-right strong { color: white; }
+
+  /* TABS */
+  .tabs { background: white; border-bottom: 1px solid #ddd; padding: 0 32px; display: flex; gap: 0; }
+  .tab { padding: 14px 24px; cursor: pointer; font-size: 13px; color: #666; border-bottom: 3px solid transparent; display: flex; align-items: center; gap: 7px; transition: all 0.2s; }
+  .tab:hover { color: #1a3a5c; background: #f8fafc; }
+  .tab.active { color: #1a3a5c; border-bottom: 3px solid #1a3a5c; font-weight: 600; }
+  .tab .tab-icon { font-size: 15px; }
+
+  /* CONTENT */
+  .content { padding: 24px 32px; }
+
+  /* KPI CARDS */
+  .kpi-row { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .kpi { background: white; border-radius: 10px; padding: 18px 24px; flex: 1; min-width: 160px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-left: 4px solid #ccc; }
+  .kpi.mayor { border-left-color: #c0392b; }
+  .kpi.menor { border-left-color: #e67e22; }
+  .kpi.obs { border-left-color: #f1c40f; }
+  .kpi.conf { border-left-color: #27ae60; }
+  .kpi.total { border-left-color: #1a3a5c; }
+  .kpi.pendiente { border-left-color: #95a5a6; }
+  .kpi-num { font-size: 36px; font-weight: 700; color: #1a3a5c; }
+  .kpi-label { font-size: 12px; color: #888; margin-top: 4px; }
+  .kpi-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+  /* SECTION TITLE */
+  .section-title { font-size: 15px; font-weight: 600; color: #1a3a5c; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid #e8eef4; display: flex; align-items: center; gap: 8px; }
+
+  /* SEARCH / FILTER */
+  .filters { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .filters input { padding: 8px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; width: 260px; outline: none; }
+  .filters input:focus { border-color: #1a3a5c; }
+  .filters select { padding: 8px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; outline: none; background: white; cursor: pointer; }
+  .filters select:focus { border-color: #1a3a5c; }
+  .filter-count { font-size: 12px; color: #888; margin-left: auto; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; }
+  thead th { background: #1a3a5c; color: white; padding: 11px 14px; text-align: left; font-weight: 600; font-size: 12px; white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid #f0f2f5; transition: background 0.15s; }
+  tbody tr:hover { background: #f8fafc; }
+  tbody td { padding: 10px 14px; vertical-align: top; }
+  .td-id { font-weight: 600; color: #1a3a5c; white-space: nowrap; font-size: 12px; }
+  .td-desc { max-width: 260px; font-size: 12px; color: #555; }
+  .td-accion { max-width: 220px; font-size: 12px; color: #444; }
+
+  /* BADGES */
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-mayor { background: #fde8e8; color: #c0392b; }
+  .badge-menor { background: #fef3e2; color: #d35400; }
+  .badge-obs { background: #fef9e7; color: #b7950b; }
+  .badge-conf { background: #e9f7ef; color: #1e8449; }
+  .badge-pendiente { background: #f2f3f4; color: #7f8c8d; }
+  .badge-noexiste { background: #eaecee; color: #566573; }
+
+  /* ESTADO */
+  .estado { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .estado-abierto { background: #fde8e8; color: #c0392b; }
+  .estado-noiniciado { background: #fef9e7; color: #9a7d0a; }
+  .estado-desarrollo { background: #e8f4fd; color: #1a5276; }
+  .estado-cerrado { background: #e9f7ef; color: #1e8449; }
+  .estado-pendiente { background: #f2f3f4; color: #7f8c8d; }
+  .estado-noexiste { background: #eaecee; color: #566573; }
+
+  /* PROCESO CARDS (tab Mapa) */
+  .proceso-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .proceso-card { background: white; border-radius: 10px; padding: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-top: 3px solid #1a3a5c; }
+  .proceso-card h4 { font-size: 13px; font-weight: 700; color: #1a3a5c; margin-bottom: 10px; }
+  .proceso-card .stat-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .stat-pill { font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+
+  /* CNA TAB */
+  .cna-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+  .cna-card { background: white; border-radius: 10px; padding: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .cna-card h4 { font-size: 13px; font-weight: 700; color: #1a3a5c; margin-bottom: 6px; }
+  .cna-card p { font-size: 12px; color: #666; margin-bottom: 10px; }
+  .cna-num { font-size: 28px; font-weight: 700; color: #1a3a5c; }
+
+  /* HIDDEN */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .empty-msg { text-align: center; padding: 40px; color: #aaa; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1><span class="icon">📊</span> ECS — Sistema de Monitoreo Institucional</h1>
+    <p>Escuela de Comercio y Servicios</p>
+  </div>
+  <div class="header-right">
+    📅 Actualizado: <strong>15 de septiembre de 2026</strong>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('mapa')"><span class="tab-icon">🗺️</span> Mapa y Estado de Procesos</div>
+  <div class="tab" onclick="showTab('auditorias')"><span class="tab-icon">🔍</span> Auditorías Internas</div>
+  <div class="tab" onclick="showTab('planes')"><span class="tab-icon">✅</span> Planes de Mejora</div>
+  <div class="tab" onclick="showTab('cna')"><span class="tab-icon">📋</span> CNA y PEI</div>
+</div>
+
+<div class="content">
+
+  <!-- TAB: MAPA -->
+  <div id="tab-mapa" class="tab-content active">
+    <div class="kpi-row" id="kpi-row"></div>
+    <div class="section-title">📌 Estado por Proceso</div>
+    <div class="proceso-grid" id="proceso-grid"></div>
+  </div>
+
+  <!-- TAB: AUDITORÍAS -->
+  <div id="tab-auditorias" class="tab-content">
+    <div class="filters">
+      <input type="text" id="search-input" placeholder="🔍  Buscar por proceso, subproceso o descripción..." oninput="filterTable()">
+      <select id="filter-clasif" onchange="filterTable()">
+        <option value="">Todas las clasificaciones</option>
+        <option value="No conformidad mayor">No conformidad mayor</option>
+        <option value="No conformidad menor">No conformidad menor</option>
+        <option value="Observación">Observación</option>
+        <option value="Conformidad">Conformidad</option>
+        <option value="Pendiente de Auditoría">Pendiente de Auditoría</option>
+        <option value="No Existe">No Existe</option>
+      </select>
+      <select id="filter-estado" onchange="filterTable()">
+        <option value="">Todos los estados</option>
+        <option value="Abierto">Abierto</option>
+        <option value="No iniciado">No iniciado</option>
+        <option value="En desarrollo">En desarrollo</option>
+        <option value="Cerrado">Cerrado</option>
+        <option value="Pendiente de Auditoría">Pendiente de Auditoría</option>
+        <option value="No Existe">No Existe</option>
+      </select>
+      <span class="filter-count" id="filter-count"></span>
+    </div>
+    <div class="table-wrap">
+      <table id="hallazgos-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Proceso</th>
+            <th>Subproceso</th>
+            <th>Clasificación</th>
+            <th>Descripción del Hallazgo</th>
+            <th>Responsable</th>
+            <th>Plazo</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="hallazgos-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: PLANES DE MEJORA -->
+  <div id="tab-planes" class="tab-content">
+    <div class="filters">
+      <input type="text" id="search-planes" placeholder="🔍  Buscar..." oninput="filterPlanes()">
+      <select id="filter-estado-planes" onchange="filterPlanes()">
+        <option value="">Todos los estados</option>
+        <option value="Abierto">Abierto</option>
+        <option value="No iniciado">No iniciado</option>
+        <option value="En desarrollo">En desarrollo</option>
+        <option value="Cerrado">Cerrado</option>
+      </select>
+      <span class="filter-count" id="filter-count-planes"></span>
+    </div>
+    <div class="table-wrap">
+      <table id="planes-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Proceso</th>
+            <th>Subproceso</th>
+            <th>Clasificación</th>
+            <th>Acción Correctiva / Plan de Mejora</th>
+            <th>Responsable</th>
+            <th>Plazo</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="planes-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: CNA Y PEI -->
+  <div id="tab-cna" class="tab-content">
+    <div class="section-title">📋 Distribución por Criterio CNA</div>
+    <div class="cna-grid" id="cna-grid"></div>
+    <br>
+    <div class="section-title">🎯 Distribución por Objetivo PEI</div>
+    <div class="cna-grid" id="pei-grid"></div>
+  </div>
+
+</div>
+
+<script>
+const DATA = [{"id": "HA-2025-001", "proceso": "Planificación Estratégica", "subproceso": "Formulación del Plan Estratégico Institucional (PEI)", "clasificacion": "No conformidad menor", "tipo": "Mejora continua", "descripcion": "Brechas en controles (carpeta compartida sin formalización) y análisis financiero pendiente.", "criterio_cna": "Criterio 06. Gobierno y Estructura Organizacional ", "objetivo_pei": "2. Consolidar la gestión basada en procesos con capacidad de análisis institucional", "accion": "Coordinar con la VRAF el levantamiento de los recursos y asignación para el PEI.", "responsable": "Vanessa Orellana", "plazo": "12/01/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-002", "proceso": "Planificación Estratégica", "subproceso": "Seguimiento y monitoreo del PEI", "clasificacion": "No conformidad menor", "tipo": "Deficiencia en los controles", "descripcion": "Ausencia evidencias sistemáticas de seguimiento (solo PPT/Excel, sin Planner activo ni informes semestrales).", "criterio_cna": "Criterio 06. Gobierno y Estructura Organizacional ", "objetivo_pei": "2. Consolidar la gestión basada en procesos con capacidad de análisis institucional", "accion": "PEI activo en Planner, Definición de ponderación de los objetivos del PEI (propuesta) ", "responsable": "Vanessa Orellana", "plazo": "01/02/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-003", "proceso": "Gobernanza Institucional", "subproceso": "Gestión de Normativa y Reglamentación Institucional", "clasificacion": "Observación", "tipo": "Mejora continua", "descripcion": "Sugerencias preventivas para procedimientos de políticas y legalización notarial", "criterio_cna": "Criterio 06. Gobierno y Estructura Organizacional ", "objetivo_pei": "2. Consolidar la gestión basada en procesos con capacidad de análisis institucional", "accion": "Confección procedimientos para el desarrollo de políticas institucionales, Confección procedimiento de legalización de la normativa interna", "responsable": "Pedro Rojas", "plazo": "20/01/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-004", "proceso": "Provisión de Carreras y Oferta Formativa", "subproceso": "Definición y Aprobación de Carrera ", "clasificacion": "No conformidad menor", "tipo": "Deficiencia en los controles", "descripcion": "Falta evidencias/análisis para carreras 2024 hacia atrás; sin aprobación formal Consejo Académico", "criterio_cna": "Criterio 01. Oferta formativa ", "objetivo_pei": "1. Actualizar, incrementar y diversificar la oferta de carreras pertinentes", "accion": "Elaborar un procedimiento y/o documento que dé cuenta de la aprobación del comité académico para las carreras, Elaboración de mapa de control de carreras (MCC).", "responsable": "Felix Burgos", "plazo": "01/02/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-005", "proceso": "Provisión de Carreras y Oferta Formativa", "subproceso": "Diseño Curricular", "clasificacion": "No conformidad menor", "tipo": "Eficiencia operacional", "descripcion": "No existe comité curricular ni coordinación de jefaturas de carrera.", "criterio_cna": "Criterio 02. Modelo educativo y perfiles de ingreso y egreso", "objetivo_pei": "1. Actualizar, incrementar y diversificar la oferta de carreras pertinentes", "accion": "Reestructuración de las áreas del conocimiento (dirección académica - jefaturas de carreras)", "responsable": "Felix Burgos", "plazo": "01/02/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-006", "proceso": "Experiencia y Permanencia de Estudiantes", "subproceso": "Fidelización del Estudiante", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Cumple ", "criterio_cna": "Criterio 03. Acceso y progresión de los estudiantes", "objetivo_pei": "3. Mejorar los indicadores de progresión académica de los estudiantes", "accion": "Capacitación en servicio al estudiante a todas las áreas", "responsable": "Pamela Manríquez", "plazo": "01/10/2026", "estado": "En desarrollo", "obs": ""}, {"id": "HA-2025-007", "proceso": "Experiencia y Permanencia de Estudiantes", "subproceso": "Gestión de Rematriculas", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Cumple ", "criterio_cna": "Criterio 03. Acceso y progresión de los estudiantes", "objetivo_pei": "3. Mejorar los indicadores de progresión académica de los estudiantes", "accion": "Ajuste y actualización ficha subproceso (integración área académica y financiera)", "responsable": "Pamela Manríquez", "plazo": "01/02/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-008", "proceso": "Experiencia y Permanencia de Estudiantes", "subproceso": "Gestión Modelo de Retención", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Cumple ", "criterio_cna": "Criterio 03. Acceso y progresión de los estudiantes", "objetivo_pei": "3. Mejorar los indicadores de progresión académica de los estudiantes", "accion": "Ajustar ficha subproceso", "responsable": "Pamela Manríquez", "plazo": "01/02/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-009", "proceso": "Titulación", "subproceso": "Titulación de Estudiantes", "clasificacion": "No conformidad menor", "tipo": "Deficiencia en los controles", "descripcion": "Expedientes incompletos (falta documentación rematrícula/admisión).", "criterio_cna": "Criterio 03. Acceso y progresión de los estudiantes", "objetivo_pei": "2. Contribuir a la pertinencia y formación integral de los estudiantes", "accion": "N/A", "responsable": "", "plazo": "", "estado": "", "obs": ""}, {"id": "HA-2025-010", "proceso": "Gestión Docente", "subproceso": "Reclutamiento, Selección e Inducción Docente", "clasificacion": "Observación", "tipo": "Eficiencia operacional", "descripcion": "Falta validación procedimiento reclutamiento y formato CV institucional ECS", "criterio_cna": "Criterio 05. Cuerpo docente", "objetivo_pei": "2. Fortalecer el cuerpo docente para una implementación adecuada", "accion": "Validar documentación relacionada con el subproceso, Confeccionar formato CV docente propio ECS", "responsable": "Yessica Vilches", "plazo": "01/02/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-011", "proceso": "Gestión Docente", "subproceso": "Pago docente", "clasificacion": "No conformidad mayor", "tipo": "Eficiencia operacional", "descripcion": "Ficha subproceso no refleja ciclo completo/modalidades; relato más ampli", "criterio_cna": "Criterio 05. Cuerpo docente", "objetivo_pei": "1. Asegurar la sostenibilidad financiera institucional", "accion": "Revisión y Actualización de la ficha del subproceso", "responsable": "Yessica Vilches", "plazo": "01/02/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-012", "proceso": "Gestión Financiera y Administrativa", "subproceso": "Gestión de cobranza ", "clasificacion": "Observación", "tipo": "Deficiencia en los controles", "descripcion": "Ficha no refleja HubSpot; Falta anexo de normalización financiera.", "criterio_cna": "Criterio 08. Gestión de recursos", "objetivo_pei": "1. Asegurar la sostenibilidad financiera institucional", "accion": "Actualizar la ficha, Desarrollar un anexo de normalización financiera.", "responsable": "Evelin Erazo", "plazo": "01/02/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-013", "proceso": "Gestión Financiera y Administrativa", "subproceso": "Revisión de matriculas", "clasificacion": "No conformidad menor", "tipo": "Deficiencia en los controles", "descripcion": "Matrícula efectiva sin documentación completa; Admisión manual no formalizada", "criterio_cna": "Criterio 03. Acceso y progresión de los estudiantes", "objetivo_pei": "3. Mejorar los indicadores de progresión académica de los estudiantes", "accion": "Actualización de ficha ", "responsable": "Carlos Campos", "plazo": "01/02/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-014", "proceso": "Gestión Financiera y Administrativa", "subproceso": "Revisión de matriculas", "clasificacion": "Observación", "tipo": "Deficiencia en los controles", "descripcion": "Faltan plataformas MNP/HubSpot/firma digital en ficha", "criterio_cna": "Criterio 03. Acceso y progresión de los estudiantes", "objetivo_pei": "3. Mejorar los indicadores de progresión académica de los estudiantes", "accion": "Actualizar y formalizar el manual de admisión (borrador)", "responsable": "Carlos Campos", "plazo": "01/02/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-015", "proceso": "Personas y Cultura Organizacional", "subproceso": "Proceso Honorarios", "clasificacion": "No conformidad menor", "tipo": "Deficiencia en los controles", "descripcion": "Controles débiles no formalizados; RRHH sin validación pago bancari", "criterio_cna": "Criterio 07. Gestión y desarrollo de personas", "objetivo_pei": "1. Asegurar la sostenibilidad financiera institucional", "accion": "Fusionar el subproceso pago de honorarios al subproceso pago docente", "responsable": "VRAF - VRA", "plazo": "01/03/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-016", "proceso": "Sistemas y Tecnologías de la Información", "subproceso": "Gestión de incidentes", "clasificacion": "Observación", "tipo": "Eficiencia operacional", "descripcion": "Sugerencia fusión con proceso Soporte TI", "criterio_cna": "Criterio 08. Gestión de recursos", "objetivo_pei": "2. Consolidar la gestión basada en procesos con capacidad de análisis institucional", "accion": "Actualizar ficha (fusionar)", "responsable": "Sebastián Olivos", "plazo": "01/02/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-017", "proceso": "Sistemas y Tecnologías de la Información", "subproceso": "Atención de soporte de TI", "clasificacion": "Observación", "tipo": "Deficiencia en los controles", "descripcion": "Nivel 2 depende de una persona (riesgo operativo)", "criterio_cna": "Criterio 08. Gestión de recursos", "objetivo_pei": "2. Consolidar la gestión basada en procesos con capacidad de análisis institucional", "accion": "Actualizar ficha (fusionar), capacitación al equpo en gestión de nivel 2", "responsable": "Sebastián Olivos", "plazo": "01/03/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-018", "proceso": "Gestión Legal", "subproceso": "Gestión de Reclamos Reguladores ", "clasificacion": "No conformidad menor", "tipo": "Desviación Menor", "descripcion": " Incumplimiento plazos de devolución de dinero (SERNAC/SES recurrente)", "criterio_cna": "Criterio 12. Integridad institucional", "objetivo_pei": "3. Robustecer una cultura institucional de calidad, promoviendo la mejora continua", "accion": "Establecer protocolos de devolución, segmentando por montos.", "responsable": "Pedro Rojas", "plazo": "01/02/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-019", "proceso": "Enseñanza Aprendizaje", "subproceso": "Planificación de asignaturas. ", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Cumple ", "criterio_cna": "Criterio 05. Cuerpo docente", "objetivo_pei": "4. Garantizar un proceso de enseñanza aprendizaje enriquecedor", "accion": "N/A", "responsable": "", "plazo": "", "estado": "", "obs": ""}, {"id": "HA-2025-020", "proceso": "Enseñanza Aprendizaje", "subproceso": "Ejecución de la matriz acciones docentes ", "clasificacion": "No conformidad mayor", "tipo": "Eficiencia operacional", "descripcion": "No existe matriz docente; ficha desconocida pese validación.", "criterio_cna": "Criterio 05. Cuerpo docente", "objetivo_pei": "4. Garantizar un proceso de enseñanza aprendizaje enriquecedor", "accion": "Revisión de la ficha del subproceso y aplicar acciones correspondientes (actualización y/o cierre", "responsable": "Yessica Vilches", "plazo": "01/02/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2025-021", "proceso": "Difusión y Admisión", "subproceso": "Gestión de Comunicaciones", "clasificacion": "Observación", "tipo": "Mejora continua", "descripcion": "Se debe difundir con toda la institución y sus áreas los lineamientos de comunicaciones (más capacitación). ", "criterio_cna": "Criterio 06. Gobierno y Estructura Organizacional ", "objetivo_pei": "4. Fomentar una comunidad educativa que promueva entornos inclusivos", "accion": "Rondas de capacitación y/o presentación del subproceso para áreas", "responsable": "Alejandro Louit", "plazo": "01/02/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-001", "proceso": "Planificación Estratégica", "subproceso": "Implementación del PEI ", "clasificacion": "Observación", "tipo": "Eficiencia operacional", "descripcion": "En la revisión del subproceso, se da cuenta que este es parte de otros subprocesos (Formulación del PEI - Seguimiento y monitoreo del PEI). Por lo que tanto la ficha como las acciones que componen el subproceso revisado, se deben funcionar. A modo de lograr mayor eficiencia", "criterio_cna": "Criterio 06. Gobierno y Estructura Organizacional ", "objetivo_pei": "2. Consolidar la gestión basada en procesos con capacidad de análisis institucional", "accion": "Se deberá ajustar la ficha y revisar las acciones que correspondan a otros subprocesos relacionados", "responsable": "Vanessa Orellana", "plazo": "01/03/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-002", "proceso": "Planificación Estratégica", "subproceso": "Evaluación, actualización y ajustes del PEI", "clasificacion": "Observación", "tipo": "Eficiencia operacional", "descripcion": "No existe un panel de seguimiento del PEI. Esto es prioritario para poder hacer seguimiento, evaluación y retroalimentación. ", "criterio_cna": "Criterio 06. Gobierno y Estructura Organizacional ", "objetivo_pei": "2. Consolidar la gestión basada en procesos con capacidad de análisis institucional", "accion": "Desarrollo e implementación de un panel de seguimiento", "responsable": "Vanessa Orellana", "plazo": "02/03/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-003", "proceso": "Provisión de Carreras y Oferta Formativa", "subproceso": "Actualización Curricular ", "clasificacion": "Observación", "tipo": "Eficiencia operacional", "descripcion": "El subproceso aún no se ha desarrollado, pues no hay carreras para actualizar. No se han desarrollado las acciones del flujo. ", "criterio_cna": "Criterio 01. Oferta formativa ", "objetivo_pei": "1. Actualizar, incrementar y diversificar la oferta de carreras pertinentes", "accion": "Implementación del subproceso y sus acciones", "responsable": "Felix Burgos", "plazo": "01/03/2027", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-004", "proceso": "Titulación", "subproceso": "Proceso de Prácticas ", "clasificacion": "Observación", "tipo": "Eficiencia operacional", "descripcion": "Se debe formalizar el documento Reglamento de Titulación. ", "criterio_cna": "Criterio 02. Modelo educativo y perfiles de ingreso y egreso", "objetivo_pei": "4. Impulsar la vinculación bidireccional con el entorno productivo", "accion": "Oficializar el Reglamento de Titulación", "responsable": "Lorena González", "plazo": "01/03/2026", "estado": "En desarrollo", "obs": ""}, {"id": "HA-2026-005", "proceso": "Provisión de Carreras y Oferta Formativa", "subproceso": "Diseño Instruccional y Tecnopedagógico", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Cumple ", "criterio_cna": "Criterio 02. Modelo educativo y perfiles de ingreso y egreso", "objetivo_pei": "1. Asegurar la calidad de los programas formativos", "accion": "N/A", "responsable": "", "plazo": "", "estado": "", "obs": ""}, {"id": "HA-2026-006", "proceso": "Provisión de Carreras y Oferta Formativa", "subproceso": "Desarrollo Formativo", "clasificacion": "No conformidad mayor", "tipo": "Eficiencia operacional", "descripcion": "Existe una evidente descoordinación respecto de este proceso, además se desconocen las responsabilidades del proceso y sus acciones. ", "criterio_cna": "Criterio 02. Modelo educativo y perfiles de ingreso y egreso", "objetivo_pei": "4. Garantizar un proceso de enseñanza aprendizaje enriquecedor", "accion": "Reformular subproceso, determinar responsabilidades y acciones de manera clara. ", "responsable": "Eduardo Hernández", "plazo": "01/03/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-007", "proceso": "Provisión de Carreras y Oferta Formativa", "subproceso": "Valoración carrera", "clasificacion": "Observación", "tipo": "Eficiencia operacional", "descripcion": "Subproceso sin evidencias por ser nuevo, no tiene indicadores ni acciones que auditar por el momento. Se debe actualizar y definir la gestión de la reportería asociada al subproceso. ", "criterio_cna": "Criterio 11. Aseguramiento de la calidad de los programas formativos. ", "objetivo_pei": "1. Asegurar la calidad de los programas formativos", "accion": "N/A", "responsable": "Yessica Vilches", "plazo": "01/04/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-008", "proceso": "Experiencia y Permanencia de Estudiantes", "subproceso": "Gestión de Servicio al Estudiante", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Proceso eficiente, coordinado y bien estrcuturado. ", "criterio_cna": "Criterio 03. Acceso y progresión de los estudiantes", "objetivo_pei": "3. Mejorar los indicadores de progresión académica de los estudiantes", "accion": "N/A", "responsable": "", "plazo": "", "estado": "", "obs": ""}, {"id": "HA-2026-009", "proceso": "Experiencia y Permanencia de Estudiantes", "subproceso": "Planificación Ejecución, Monitoreo y Evaluación de Inducción ", "clasificacion": "Conformidad", "tipo": "Eficiencia operacional", "descripcion": "Proceso eficiente, coordinado y bien estrcuturado. ", "criterio_cna": "Criterio 03. Acceso y progresión de los estudiantes", "objetivo_pei": "3. Mejorar los indicadores de progresión académica de los estudiantes", "accion": "N/A", "responsable": "", "plazo": "", "estado": "", "obs": ""}, {"id": "HA-2026-010", "proceso": "Personas y Cultura Organizacional", "subproceso": "Proceso Reclutamiento y selección", "clasificacion": "Observación", "tipo": "Desviación Menor", "descripcion": "Se debe resguardar que se sigan todos los pasos y/o acciones declaradas en el subproceso. ", "criterio_cna": "Criterio 07. Gestión y desarrollo de personas", "objetivo_pei": "3. Robustecer una cultura institucional de calidad, promoviendo la mejora continua", "accion": "Actualizar la ficha de subproceso en función de los cargos (específicamente carta de oferta).", "responsable": "Angie Riquelme", "plazo": "01.03.2026", "estado": "", "obs": ""}, {"id": "HA-2026-011", "proceso": "Personas y Cultura Organizacional", "subproceso": "Proceso Evaluación de desempeño", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Proceso eficiente, coordinado y bien estrcuturado. ", "criterio_cna": "Criterio 07. Gestión y desarrollo de personas", "objetivo_pei": "3. Robustecer una cultura institucional de calidad, promoviendo la mejora continua", "accion": "N/A", "responsable": "", "plazo": "", "estado": "", "obs": ""}, {"id": "HA-2026-012", "proceso": "Inserción y Movilidad Laboral", "subproceso": "Seguimiento y Evaluación de la Empleabilidad y Trayectoria de Egresados ", "clasificacion": "Conformidad", "tipo": "Eficiencia operacional", "descripcion": "Proceso eficiente, coordinado y bien estrcuturado. ", "criterio_cna": "Criterio 04. Empleabilidad", "objetivo_pei": "2. Contribuir a la pertinencia y formación integral de los estudiantes", "accion": "N/A", "responsable": "", "plazo": "", "estado": "", "obs": ""}, {"id": "HA-2026-013", "proceso": "Inserción y Movilidad Laboral", "subproceso": "Vinculación con egresados ​​y desarrollo profesional", "clasificacion": "Conformidad", "tipo": "Eficiencia operacional", "descripcion": "Proceso eficiente, coordinado y bien estrcuturado. ", "criterio_cna": "Criterio 04. Empleabilidad", "objetivo_pei": "2. Contribuir a la pertinencia y formación integral de los estudiantes", "accion": "N/A", "responsable": "", "plazo": "", "estado": "", "obs": ""}, {"id": "HA-2026-014", "proceso": "Gestión Docente", "subproceso": "Planificación Académica ", "clasificacion": "Observación", "tipo": "Eficiencia operacional", "descripcion": "Se debe formalizar la cantidad de estudiantes por cada docente para un periodo determinado. ", "criterio_cna": "Criterio 01. Oferta formativa ", "objetivo_pei": "1. Actualizar, incrementar y diversificar la oferta de carreras pertinentes", "accion": "Indicar en un reglamento la cantidad de estudiantes por docentes (relación)", "responsable": "Yessica Vilches", "plazo": "01/03/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-015", "proceso": "Gestión Docente", "subproceso": "Seguimiento docente ", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Proceso eficiente, coordinado y bien estrcuturado. ", "criterio_cna": "Criterio 05. Cuerpo docente", "objetivo_pei": "2. Fortalecer el cuerpo docente para una implementación adecuada", "accion": "N/A", "responsable": "", "plazo": "", "estado": "", "obs": ""}, {"id": "HA-2026-016", "proceso": "Gestión Docente", "subproceso": "Evaluación docente", "clasificacion": "No conformidad menor", "tipo": "Desviación Menor", "descripcion": "Se debe socializar la evaluación docente con el cuerpo docente. ", "criterio_cna": "Criterio 05. Cuerpo docente", "objetivo_pei": "2. Fortalecer el cuerpo docente para una implementación adecuada", "accion": "Confección de un plan de socialización docente. ", "responsable": "Yessica Vilches", "plazo": "01/03/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-017", "proceso": "Gestión Docente", "subproceso": "Formación docente.", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Proceso eficiente, coordinado y bien estrcuturado. ", "criterio_cna": "Criterio 05. Cuerpo docente", "objetivo_pei": "2. Fortalecer el cuerpo docente para una implementación adecuada", "accion": "N/A", "responsable": "", "plazo": "", "estado": "", "obs": ""}, {"id": "HA-2026-018", "proceso": "Gestión Docente", "subproceso": "Permanencia Docente", "clasificacion": "No conformidad mayor", "tipo": "Eficiencia operacional", "descripcion": "No existen acciones y evidencias que den cuenta de la desvinculación o decisión de termino hacia un docente.", "criterio_cna": "Criterio 05. Cuerpo docente", "objetivo_pei": "2. Fortalecer el cuerpo docente para una implementación adecuada", "accion": "Se debe confeccionar un informe o dar información de las razones de la no permanencia.", "responsable": "Yessica Vilches", "plazo": "01/03/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-019", "proceso": "Difusión y Admisión", "subproceso": "Gestión de Admisión y Matrícula", "clasificacion": "Observación", "tipo": "Desviación Menor", "descripcion": "Política de leads no validada como documento normativo. ", "criterio_cna": "Criterio 03. Acceso y progresión de los estudiantes", "objetivo_pei": "3. Mejorar los indicadores de progresión académica de los estudiantes", "accion": "Revisar y validar la política de leads. ", "responsable": "Jorge Frás ", "plazo": "01/03/2026", "estado": "En desarrollo", "obs": ""}, {"id": "HA-2026-020", "proceso": "Sistemas y Tecnologías de la Información", "subproceso": "Administración de usuarios (cuentas y equipos)", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Uso riguroso de Planner y bloqueo efectivo en Active Directory/UMA.", "criterio_cna": "Criterio 08. Gestión de recursos", "objetivo_pei": "2. Consolidar la gestión basada en procesos con capacidad de análisis institucional", "accion": "Analizar viabilidad de firma electrónica en actas de entrega.", "responsable": "Secretaría General / TI", "plazo": "01/12/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-021", "proceso": "Personas y Cultura Organizacional", "subproceso": "Proceso Bienestar y calidad de vida", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Excelente uso de Encuesta de Clima para planificación de beneficios.", "criterio_cna": "Criterio 09. Gestión de la convivencia, equidad de género, diversidad e inclusión", "objetivo_pei": "4. Fomentar una comunidad educativa que promueva entornos inclusivos", "accion": "Diseñar indicadores de impacto de convenios externos.", "responsable": "", "plazo": "01/12/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-022", "proceso": "Inclusión y Equidad de Género", "subproceso": "Capacitación a la Comunidad", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Integración robusta con Aula Virtual y registro centralizado.", "criterio_cna": "Criterio 09. Gestión de la convivencia, equidad de género, diversidad e inclusión", "objetivo_pei": "4. Fomentar una comunidad educativa que promueva entornos inclusivos", "accion": "Completar capacitación del 30% restante de la comunidad.", "responsable": "Unidad de Género", "plazo": "01/12/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-023", "proceso": "Personas y Cultura Organizacional", "subproceso": "Proceso Capacitación", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Alineación directa con DNC y Evaluación de Desempeño.", "criterio_cna": "Criterio 07. Gestión y desarrollo de personas", "objetivo_pei": "4. Fomentar una comunidad educativa que promueva entornos inclusivos", "accion": "Continuar despliegue de plan según programación DNC.", "responsable": "Angie Riquelme", "plazo": "01/12/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-024", "proceso": "Difusión y Admisión", "subproceso": "Desarrollo de Campañas", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Uso de HubSpot para trazabilidad de leads y validación de identidad.", "criterio_cna": "Criterio 03. Acceso y progresión de los estudiantes", "objetivo_pei": "1. Actualizar, incrementar y diversificar la oferta de carreras pertinentes", "accion": "Implementar minutas tipo bitácora para reuniones diarias.", "responsable": "", "plazo": "01/11/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-025", "proceso": "Personas y Cultura Organizacional", "subproceso": "Proceso Desvinculación", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Visación jurídica robusta y control de accesos poscontrato.", "criterio_cna": "Criterio 07. Gestión y desarrollo de personas", "objetivo_pei": "1. Asegurar la sostenibilidad financiera institucional", "accion": "Estandarizar proceso de baja informática y activos.", "responsable": "", "plazo": "01/12/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-026", "proceso": "Difusión y Admisión", "subproceso": "Gestión Comercial", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Seguimiento diario de metas y reportes ejecutivos.", "criterio_cna": "Criterio 03. Acceso y progresión de los estudiantes", "objetivo_pei": "1. Actualizar, incrementar y diversificar la oferta de carreras pertinentes", "accion": "Formalizar envío de resumen tras reuniones de admisión.", "responsable": "", "plazo": "01/11/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-027", "proceso": "Gestión Legal", "subproceso": "Gestión de contratos con Proveedores", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Aplicación estricta de Matriz RASCI.", "criterio_cna": "Criterio 08. Gestión de recursos", "objetivo_pei": "1. Asegurar la sostenibilidad financiera institucional", "accion": "Mantener repositorio actualizado para auditorías.", "responsable": "Secretaría General", "plazo": "Permanente", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-028", "proceso": "Gestión Legal", "subproceso": "Gestión de Reclamos Reguladores", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Revisión triple diaria de plataformas estatales.", "criterio_cna": "Criterio 12. Integridad institucional", "objetivo_pei": "3. Robustecer una cultura institucional de calidad, promoviendo la mejora continua", "accion": "Integrar reportes hacia Unidad de Calidad.", "responsable": "Secretaría General", "plazo": "01/11/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-029", "proceso": "Difusión y Admisión", "subproceso": "Investigación de Mercado", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Consolidación mensual de inteligencia competitiva.", "criterio_cna": "Criterio 06. Gobierno y Estructura Organizacional", "objetivo_pei": "1. Actualizar, incrementar y diversificar la oferta de carreras pertinentes", "accion": "Implementar bitácoras de coordinación en Teams.", "responsable": "", "plazo": "01/11/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-030", "proceso": "Logro del Perfil de Egreso", "subproceso": "Logro del Perfil de Egreso", "clasificacion": "Observación", "tipo": "Eficiencia operacional", "descripcion": "Requiere formalizar actas de sesiones en Comités Curriculares.", "criterio_cna": "Criterio 02. Modelo educativo y perfiles de ingreso y egreso", "objetivo_pei": "2. Contribuir a la pertinencia y formación integral de los estudiantes", "accion": "Iniciar sesiones formales de Comités Curriculares.", "responsable": "", "plazo": "01/09/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-031", "proceso": "Personas y Cultura Organizacional", "subproceso": "Proceso Remuneraciones", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Alta rigurosidad en validación de datos en plataforma Talana.", "criterio_cna": "Criterio 07. Gestión y desarrollo de personas", "objetivo_pei": "1. Asegurar la sostenibilidad financiera institucional", "accion": "Centralizar respaldos en repositorio compartido.", "responsable": "", "plazo": "01/12/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-032", "proceso": "Sistemas y Tecnologías de la Información", "subproceso": "Gestión de riesgos tecnológicos", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Matriz de Riesgos activa y reportes de pruebas de mitigación.", "criterio_cna": "Criterio 08. Gestión de recursos", "objetivo_pei": "2. Consolidar la gestión basada en procesos con capacidad de análisis institucional", "accion": "Generar protocolo estándar de adm. de usuarios.", "responsable": "", "plazo": "01/11/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-033", "proceso": "Gestión Financiera y Administrativa", "subproceso": "Declaraciones de renta", "clasificacion": "Observación", "tipo": "Eficiencia operacional", "descripcion": "Alta dependencia operativa de proveedor externo.", "criterio_cna": "Criterio 12. Integridad institucional", "objetivo_pei": "1. Asegurar la sostenibilidad financiera institucional", "accion": "Implementar calendario estricto de procesos.", "responsable": "", "plazo": "01/11/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-034", "proceso": "Gestión Financiera y Administrativa", "subproceso": "Administración de los recursos financieros", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Control estricto y centralizado; proceso en fase de optimización digital (Ozmo).", "criterio_cna": "Criterio 08. Gestión de recursos", "objetivo_pei": "1. Asegurar la sostenibilidad financiera institucional", "accion": "Implementar módulo de rendición en sistema Ozmo.", "responsable": "", "plazo": "01/01/2027", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-035", "proceso": "Gestión de la VcM e Innovación", "subproceso": "Comunicación de la VcM", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Existencia de Plan Anual; se requiere transitar hacia dashboards de control.", "criterio_cna": "Criterio 14. Resultados e impacto de la vinculación con el medio", "objetivo_pei": "4. Impulsar la vinculación bidireccional con el entorno productivo", "accion": "Implementar tablero de control (dashboard) de métricas.", "responsable": "", "plazo": "01/11/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-036", "proceso": "Gobernanza Institucional", "subproceso": "Cumplimiento Legal", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Alta madurez técnica; uso intensivo de firma electrónica y QR.", "criterio_cna": "Criterio 06. Gobierno y Estructura Organizacional", "objetivo_pei": "2. Consolidar la gestión basada en procesos con capacidad de análisis institucional", "accion": "Incrementar cobertura de firma electrónica.", "responsable": "Secretaría General", "plazo": "01/12/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-037", "proceso": "Gestión de la VcM e Innovación", "subproceso": "Formación en VcM e Innovación", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Estructura metodológica robusta y sistematización en plataforma digital.", "criterio_cna": "Criterio 15. Política y gestión", "objetivo_pei": "4. Impulsar la vinculación bidireccional con el entorno productivo", "accion": "Finalizar digitalización de 8 instrumentos de evaluación.", "responsable": "", "plazo": "01/12/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-038", "proceso": "Inclusión y Equidad de Género", "subproceso": "Gestión de Canal de Denuncias", "clasificacion": "Observación", "tipo": "Eficiencia operacional", "descripcion": "Oportunidad de estandarizar cierres administrativos fuera de Ley Karin.", "criterio_cna": "Criterio 12. Integridad institucional", "objetivo_pei": "3. Robustecer una cultura institucional de calidad, promoviendo la mejora continua", "accion": "Estandarizar formalmente el cierre de denuncias.", "responsable": "Secretaría General", "plazo": "01/12/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-039", "proceso": "Gestión de la VcM e Innovación", "subproceso": "Planificación de la VcM", "clasificacion": "Observación", "tipo": "Eficiencia operacional", "descripcion": "Brecha en formalización del flujo presupuestario con VRAF.", "criterio_cna": "Criterio 13. Política y gestión de la vinculación con el medio", "objetivo_pei": "4. Impulsar la vinculación bidireccional con el entorno productivo", "accion": "Formalizar procedimiento de aprobación presupuestaria con VRAF.", "responsable": "", "plazo": "01/12/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-040", "proceso": "Gestión Legal", "subproceso": "Gestión de Reclamos Reguladores", "clasificacion": "Observación", "tipo": "Eficiencia operacional", "descripcion": "Dependencia de archivadores físicos; falta integración digital total.", "criterio_cna": "Criterio 12. Integridad institucional", "objetivo_pei": "3. Robustecer una cultura institucional de calidad, promoviendo la mejora continua", "accion": "Evaluar e implementar plataforma \"Sherif\".", "responsable": "Secretaría General", "plazo": "01/12/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-041", "proceso": "Gestión Financiera y Administrativa", "subproceso": "Gestión Presupuestaria", "clasificacion": "Observación", "tipo": "Eficiencia operacional", "descripcion": "Comunicación de alertas depende de reuniones; requiere formalización documental.", "criterio_cna": "Criterio 08. Gestión de recursos", "objetivo_pei": "1. Asegurar la sostenibilidad financiera institucional", "accion": "Formalizar protocolo de registro de alertas y ajustes.", "responsable": "", "plazo": "01/12/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-042", "proceso": "Gestión Financiera y Administrativa", "subproceso": "Gestión de proveedores", "clasificacion": "Observación", "tipo": "Eficiencia operacional", "descripcion": "Proceso funcional con necesidad de automatizar el flujo de cotizaciones.", "criterio_cna": "Criterio 08. Gestión de recursos", "objetivo_pei": "1. Asegurar la sostenibilidad financiera institucional", "accion": "Integrar módulo de cotizaciones en sistema Ozmo.", "responsable": "", "plazo": "01/01/2027", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-043", "proceso": "Gestión Financiera y Administrativa", "subproceso": "Gestión de Riesgos Financieros", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Monitoreo semanal activo; transición hacia digitalización integral con Ozmo.", "criterio_cna": "Criterio 08. Gestión de recursos", "objetivo_pei": "1. Asegurar la sostenibilidad financiera institucional", "accion": "Implementar módulo financiero sistema Ozmo.", "responsable": "", "plazo": "01/01/2027", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-044", "proceso": "Gestión Legal", "subproceso": "Relacionamiento con entes reguladores", "clasificacion": "Conformidad", "tipo": "Mejora continua", "descripcion": "Gestión digitalizada y centralizada; requiere análisis de causa raíz ante sanciones.", "criterio_cna": "Criterio 12. Integridad institucional", "objetivo_pei": "2. Consolidar la gestión basada en procesos con capacidad de análisis institucional", "accion": "Establecer protocolo de análisis de causa raíz.", "responsable": "Secretaría General", "plazo": "01/12/2026", "estado": "No iniciado", "obs": ""}, {"id": "HA-2026-045", "proceso": "Enseñanza Aprendizaje", "subproceso": "Cierre de Periodo", "clasificacion": "Observación", "tipo": "Deficiencia en los controles", "descripcion": "No se generan reportes específicos al finalizar el período académico. Las calificaciones se traspasan manualmente desde el LMS a la intranet (UMAS). El cierre de actas lo valida la jefa de registro curricular. Se está trabajando en mejora continua con Uplanner.", "criterio_cna": "Criterio 05. Cuerpo docente", "objetivo_pei": "4. Garantizar un proceso de enseñanza aprendizaje enriquecedor", "accion": "Capacitar al 100% a los jefes de carrera en el uso de Uplanner para generación de reportes y seguimiento estudiantil, evitando duplicación de esfuerzo con la Dirección de Experiencia y Permanencia.", "responsable": "Directora Académica", "plazo": "Diciembre 2026", "estado": "Abierto", "obs": ""}, {"id": "HA-2026-046", "proceso": "Aseguramiento de la Calidad", "subproceso": "Análisis Institucional y Gobernanza de Datos", "clasificacion": "No conformidad mayor", "tipo": "Deficiencia en los controles", "descripcion": "Se requiere ingeniería completa del proceso. El subproceso no cuenta con controles ni estructura operativa suficiente para su correcto funcionamiento.", "criterio_cna": "Criterio 06. Gobierno y Estructura Organizaciona", "objetivo_pei": "2. Consolidar la gestión basada en procesos con capacidad de análisis institucional", "accion": "Rediseño completo del proceso (ingeniería de procesos). Definir estructura, responsables, controles e indicadores desde cero.", "responsable": "VRAC", "plazo": "Por definir", "estado": "No Iniciado", "obs": " "}, {"id": "—", "proceso": "Aseguramiento de la Calidad", "subproceso": "Gestión del Sistema Interno de Aseguramiento de la Calidad", "clasificacion": "Pendiente de Auditoría", "tipo": "En Pausa", "descripcion": "Subproceso no auditado en esta etapa. Auditoría diferida.", "criterio_cna": "", "objetivo_pei": "", "accion": "", "responsable": "Por definir", "plazo": "Sin plazo", "estado": "Pendiente de Auditoría", "obs": "Auditoría en pausa. No se han levantado hallazgos aún."}, {"id": "—", "proceso": "Aseguramiento de la Calidad", "subproceso": "Autoevaluación Institucional", "clasificacion": "Pendiente de Auditoría", "tipo": "En Pausa", "descripcion": "Subproceso no auditado en esta etapa. Auditoría diferida.", "criterio_cna": "", "objetivo_pei": "", "accion": "", "responsable": "Por definir", "plazo": "Sin plazo", "estado": "Pendiente de Auditoría", "obs": "Auditoría en pausa. No se han levantado hallazgos aún."}, {"id": "—", "proceso": "Aseguramiento de la Calidad", "subproceso": "Mejora Continua Institucional", "clasificacion": "Pendiente de Auditoría", "tipo": "En Pausa", "descripcion": "Subproceso no auditado en esta etapa. Auditoría diferida.", "criterio_cna": "", "objetivo_pei": "", "accion": "", "responsable": "Por definir", "plazo": "Sin plazo", "estado": "Pendiente de Auditoría", "obs": "Auditoría en pausa. No se han levantado hallazgos aún."}, {"id": "—", "proceso": "Aseguramiento de la Calidad", "subproceso": "Auditorías Internas", "clasificacion": "Pendiente de Auditoría", "tipo": "En Pausa", "descripcion": "Subproceso no auditado en esta etapa. Auditoría diferida.", "criterio_cna": "", "objetivo_pei": "", "accion": "", "responsable": "Por definir", "plazo": "Sin plazo", "estado": "Pendiente de Auditoría", "obs": "Auditoría en pausa. No se han levantado hallazgos aún."}, {"id": "—", "proceso": "Logro del Perfil de Egreso", "subproceso": "Ejecución Ruta de Aprendizaje", "clasificacion": "No Existe", "tipo": "No Existe", "descripcion": "Subproceso autocontenido dentro del proceso de Logro del Perfil de Egreso. No existe como subproceso independiente..", "criterio_cna": "N/A", "objetivo_pei": "N/A", "accion": "N/A", "responsable": "N/A", "plazo": "N/A", "estado": "No Existe", "obs": "Autocontenido en el proceso padre. Excluido del alcance de auditoría individual."}, {"id": "—", "proceso": "Gestión Curricular", "subproceso": "Discontinuidad / Cierre de Carrera", "clasificacion": "No Existe", "tipo": "No Existe", "descripcion": "Subproceso autocontenido dentro del proceso de Gestión Curricular. No existe como subproceso independiente.", "criterio_cna": "N/A", "objetivo_pei": "N/A", "accion": "N/A", "responsable": "N/A", "plazo": "N/A", "estado": "No Existe", "obs": "Autocontenido en el proceso padre. Excluido del alcance de auditoría individual."}, {"id": "—", "proceso": "?", "subproceso": "Actualización de Modelos", "clasificacion": "No Existe", "tipo": "No Existe", "descripcion": "Subproceso autocontenido dentro del proceso de Aseguramiento de la Calidad. No existe como subproceso independiente.", "criterio_cna": "N/A", "objetivo_pei": "N/A", "accion": "N/A", "responsable": "N/A", "plazo": "N/A", "estado": "No Existe", "obs": "Autocontenido en el proceso padre. Excluido del alcance de auditoría individual."}];
+
+function badgeClasif(c) {
+  if (!c) return '';
+  if (c.includes('mayor')) return `<span class="badge badge-mayor">${c}</span>`;
+  if (c.includes('menor')) return `<span class="badge badge-menor">${c}</span>`;
+  if (c === 'Observación') return `<span class="badge badge-obs">${c}</span>`;
+  if (c === 'Conformidad') return `<span class="badge badge-conf">${c}</span>`;
+  if (c === 'Pendiente de Auditoría') return `<span class="badge badge-pendiente">${c}</span>`;
+  if (c === 'No Existe') return `<span class="badge badge-noexiste">${c}</span>`;
+  return `<span class="badge">${c}</span>`;
+}
+
+function badgeEstado(e) {
+  if (!e) return '';
+  if (e === 'Abierto') return `<span class="estado estado-abierto">${e}</span>`;
+  if (e === 'No iniciado') return `<span class="estado estado-noiniciado">${e}</span>`;
+  if (e === 'En desarrollo') return `<span class="estado estado-desarrollo">${e}</span>`;
+  if (e === 'Cerrado') return `<span class="estado estado-cerrado">${e}</span>`;
+  if (e === 'Pendiente de Auditoría') return `<span class="estado estado-pendiente">${e}</span>`;
+  if (e === 'No Existe') return `<span class="estado estado-noexiste">${e}</span>`;
+  return `<span class="estado">${e}</span>`;
+}
+
+// KPIs
+function buildKPIs() {
+  const formales = DATA.filter(d => d.id.startsWith('HA-'));
+  const mayor = formales.filter(d => d.clasificacion === 'No conformidad mayor').length;
+  const menor = formales.filter(d => d.clasificacion === 'No conformidad menor').length;
+  const obs = formales.filter(d => d.clasificacion === 'Observación').length;
+  const conf = formales.filter(d => d.clasificacion === 'Conformidad').length;
+  const pendiente = DATA.filter(d => d.estado === 'Pendiente de Auditoría').length;
+  const noexiste = DATA.filter(d => d.estado === 'No Existe').length;
+
+  document.getElementById('kpi-row').innerHTML = `
+    <div class="kpi total"><div class="kpi-num">${formales.length}</div><div class="kpi-label">Total Hallazgos</div><div class="kpi-sub">Etapas 1–4</div></div>
+    <div class="kpi mayor"><div class="kpi-num">${mayor}</div><div class="kpi-label">No Conformidad Mayor</div></div>
+    <div class="kpi menor"><div class="kpi-num">${menor}</div><div class="kpi-label">No Conformidad Menor</div></div>
+    <div class="kpi obs"><div class="kpi-num">${obs}</div><div class="kpi-label">Observación</div></div>
+    <div class="kpi conf"><div class="kpi-num">${conf}</div><div class="kpi-label">Conformidad</div></div>
+    <div class="kpi pendiente"><div class="kpi-num">${pendiente}</div><div class="kpi-label">Pendientes de Auditoría</div></div>
+  `;
+}
+
+// MAPA PROCESOS
+function buildMapa() {
+  const procesos = {};
+  DATA.forEach(d => {
+    if (!d.proceso) return;
+    if (!procesos[d.proceso]) procesos[d.proceso] = { mayor:0, menor:0, obs:0, conf:0, pendiente:0, noexiste:0, total:0 };
+    const p = procesos[d.proceso];
+    p.total++;
+    if (d.clasificacion === 'No conformidad mayor') p.mayor++;
+    else if (d.clasificacion === 'No conformidad menor') p.menor++;
+    else if (d.clasificacion === 'Observación') p.obs++;
+    else if (d.clasificacion === 'Conformidad') p.conf++;
+    else if (d.clasificacion === 'Pendiente de Auditoría') p.pendiente++;
+    else if (d.clasificacion === 'No Existe') p.noexiste++;
+  });
+
+  let html = '';
+  for (const [nombre, stats] of Object.entries(procesos)) {
+    const pills = [];
+    if (stats.mayor) pills.push(`<span class="stat-pill badge-mayor">${stats.mayor} Mayor</span>`);
+    if (stats.menor) pills.push(`<span class="stat-pill badge-menor">${stats.menor} Menor</span>`);
+    if (stats.obs) pills.push(`<span class="stat-pill badge-obs">${stats.obs} Obs.</span>`);
+    if (stats.conf) pills.push(`<span class="stat-pill badge-conf">${stats.conf} Conf.</span>`);
+    if (stats.pendiente) pills.push(`<span class="stat-pill badge-pendiente">${stats.pendiente} Pendiente</span>`);
+    if (stats.noexiste) pills.push(`<span class="stat-pill badge-noexiste">${stats.noexiste} No Existe</span>`);
+    html += `<div class="proceso-card"><h4>${nombre}</h4><div class="kpi-sub">${stats.total} subproceso(s)</div><div class="stat-row">${pills.join('')}</div></div>`;
+  }
+  document.getElementById('proceso-grid').innerHTML = html;
+}
+
+// TABLA HALLAZGOS
+let filteredData = [...DATA];
+function buildTable(data) {
+  const tbody = document.getElementById('hallazgos-body');
+  if (!data.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-msg">No se encontraron resultados.</td></tr>'; return; }
+  tbody.innerHTML = data.map(d => `
+    <tr>
+      <td class="td-id">${d.id}</td>
+      <td>${d.proceso}</td>
+      <td>${d.subproceso}</td>
+      <td>${badgeClasif(d.clasificacion)}</td>
+      <td class="td-desc">${d.descripcion}</td>
+      <td>${d.responsable}</td>
+      <td style="white-space:nowrap;font-size:12px">${d.plazo}</td>
+      <td>${badgeEstado(d.estado)}</td>
+    </tr>`).join('');
+  document.getElementById('filter-count').textContent = `Mostrando ${data.length} de ${DATA.length} registros`;
+}
+
+function filterTable() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const cl = document.getElementById('filter-clasif').value;
+  const es = document.getElementById('filter-estado').value;
+  filteredData = DATA.filter(d => {
+    const matchQ = !q || [d.proceso, d.subproceso, d.descripcion, d.id].some(v => v && v.toLowerCase().includes(q));
+    const matchCl = !cl || d.clasificacion === cl;
+    const matchEs = !es || d.estado === es;
+    return matchQ && matchCl && matchEs;
+  });
+  buildTable(filteredData);
+}
+
+// PLANES DE MEJORA
+function buildPlanes(data) {
+  const formales = data.filter(d => d.id.startsWith('HA-') && d.accion);
+  const tbody = document.getElementById('planes-body');
+  if (!formales.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-msg">No se encontraron resultados.</td></tr>'; return; }
+  tbody.innerHTML = formales.map(d => `
+    <tr>
+      <td class="td-id">${d.id}</td>
+      <td>${d.proceso}</td>
+      <td>${d.subproceso}</td>
+      <td>${badgeClasif(d.clasificacion)}</td>
+      <td class="td-accion">${d.accion}</td>
+      <td>${d.responsable}</td>
+      <td style="white-space:nowrap;font-size:12px">${d.plazo}</td>
+      <td>${badgeEstado(d.estado)}</td>
+    </tr>`).join('');
+  document.getElementById('filter-count-planes').textContent = `Mostrando ${formales.length} planes de mejora`;
+}
+
+function filterPlanes() {
+  const q = document.getElementById('search-planes').value.toLowerCase();
+  const es = document.getElementById('filter-estado-planes').value;
+  const filtered = DATA.filter(d => {
+    const matchQ = !q || [d.proceso, d.subproceso, d.accion].some(v => v && v.toLowerCase().includes(q));
+    const matchEs = !es || d.estado === es;
+    return matchQ && matchEs;
+  });
+  buildPlanes(filtered);
+}
+
+// CNA y PEI
+function buildCNA() {
+  const cnaMap = {}, peiMap = {};
+  DATA.filter(d => d.id.startsWith('HA-')).forEach(d => {
+    if (d.criterio_cna) { cnaMap[d.criterio_cna.trim()] = (cnaMap[d.criterio_cna.trim()] || 0) + 1; }
+    if (d.objetivo_pei) { peiMap[d.objetivo_pei.trim()] = (peiMap[d.objetivo_pei.trim()] || 0) + 1; }
+  });
+
+  const cnaColors = ['#1a3a5c','#2471a3','#1a8cba','#0e6655','#1e8449','#c0392b','#d35400','#b7950b','#6c3483','#17202a'];
+
+  let cnaHtml = '';
+  Object.entries(cnaMap).sort((a,b) => b[1]-a[1]).forEach(([k,v], i) => {
+    cnaHtml += `<div class="cna-card"><h4 style="color:${cnaColors[i%cnaColors.length]}">${k}</h4><div class="cna-num" style="color:${cnaColors[i%cnaColors.length]}">${v}</div><p>hallazgo(s) asociado(s)</p></div>`;
+  });
+  document.getElementById('cna-grid').innerHTML = cnaHtml;
+
+  let peiHtml = '';
+  Object.entries(peiMap).sort((a,b) => b[1]-a[1]).forEach(([k,v], i) => {
+    peiHtml += `<div class="cna-card"><h4 style="color:${cnaColors[i%cnaColors.length]}">${k}</h4><div class="cna-num" style="color:${cnaColors[i%cnaColors.length]}">${v}</div><p>hallazgo(s) asociado(s)</p></div>`;
+  });
+  document.getElementById('pei-grid').innerHTML = peiHtml;
+}
+
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  event.target.closest('.tab').classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// INIT
+buildKPIs();
+buildMapa();
+buildTable(DATA);
+buildPlanes(DATA);
+buildCNA();
+document.getElementById('filter-count').textContent = `Mostrando ${DATA.length} de ${DATA.length} registros`;
+document.getElementById('filter-count-planes').textContent = `Mostrando ${DATA.filter(d=>d.id.startsWith('HA-')&&d.accion).length} planes de mejora`;
+</script>
+</body>
+</html>
